@@ -252,9 +252,9 @@ const INDEXES = [
   { name:'S&P500', ticker:'^GSPC' }
 ];
 
-const CONCURRENCY = 2;
-const BATCH_DELAY = 500;
-const TIMEOUT = 6000;
+const CONCURRENCY = 3; // 동시에 3개 호출
+const BATCH_DELAY = 300; // 배치 간 300ms
+const TIMEOUT = 5000; // 5초 타임아웃
 const RETRIES = 1;
 
 // ============ STATE ============
@@ -1050,7 +1050,7 @@ async function init() {
   await refresh();
 
   // 5-second refresh
-  setInterval(refresh, 5000);
+  setInterval(refresh, 10000); // 10초마다 갱신
 }
 
 init();
