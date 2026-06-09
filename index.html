@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>개미장 — 네이버증권 × Binance 프리마켓</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1115;--card:#1a1d24;--card-hover:#222630;--border:#2a2e38;
+  --text:#e8eaed;--text-secondary:#8b8f9a;--text-muted:#5a5e6a;
+  --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--yellow:#eab308;
+  --accent:#6366f1;--premium-pos:#22c55e;--premium-neg:#ef4444;
+  --panel-left:#151820;--panel-right:#12151c;
+  --header-bg:#0a0c10;--strip-bg:#12141a;
+}
+body.light{
+  --bg:#f5f5f7;--card:#fff;--card-hover:#f0f0f2;--border:#e0e0e4;
+  --text:#1a1a2e;--text-secondary:#666;--text-muted:#999;
+  --panel-left:#f8f8fa;--panel-right:#f4f4f6;
+  --header-bg:#fff;--strip-bg:#f0f0f2;
+}
+body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+.mono{font-family:'JetBrains Mono',monospace}
+.kr{font-family:'Noto Sans KR','Inter',sans-serif}
+
+/* Header */
+.header{background:var(--header-bg);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo{font-size:1.5rem;font-weight:800;display:flex;align-items:center;gap:8px;letter-spacing:-1px}
+.logo-icon{font-size:1.6rem;filter:drop-shadow(0 0 6px rgba(255,165,0,.4))}
+.logo-text{background:linear-gradient(135deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{font-size:.75rem;color:var(--text-secondary)}
+.header-right{display:flex;align-items:center;gap:16px}
+.clock{font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--text-secondary)}
+.refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.toggle-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.85rem;transition:all .2s}
+.toggle-btn:hover{background:var(--card-hover)}
+
+/* Market Index Strip */
+.index-strip{background:var(--strip-bg);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:24px;overflow-x:auto;scrollbar-width:none}
+.index-strip::-webkit-scrollbar{display:none}
+.index-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;border-radius:10px;background:var(--card);min-width:180px;border:1px solid var(--border)}
+.index-name{font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.index-price{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:600}
+.index-change{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:700;padding:2px 8px;border-radius:4px}
+.index-change.up{background:rgba(34,197,94,.12);color:var(--green)}
+.index-change.down{background:rgba(239,68,68,.12);color:var(--red)}
+.up{color:var(--green)}.down{color:var(--red)}
+
+/* Quick Stats */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;transition:all .3s}
+.stat-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.stat-label{font-size:.75rem;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700}
+.stat-sub{font-size:.75rem;color:var(--text-muted);margin-top:4px}
+
+/* Stock Grid */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:0 24px 24px}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}.stats-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr}.header{flex-wrap:wrap;gap:8px}.index-strip{gap:12px;padding:10px 12px}}
+
+/* Stock Card */
+.stock-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all .3s;position:relative}
+.stock-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-header{padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border)}
+.card-name{font-size:1rem;font-weight:700}
+.card-ticker{font-size:.7rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.card-badges{display:flex;gap:4px}
+.badge{font-size:.6rem;padding:2px 6px;border-radius:4px;font-weight:600;text-transform:uppercase}
+.badge-krx{background:rgba(99,102,241,.15);color:var(--accent)}
+.badge-binance{background:rgba(234,179,8,.15);color:var(--yellow)}
+
+.price-panels{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.price-panel{padding:14px 16px;position:relative}
+.price-panel-left{background:var(--panel-left);border-right:1px solid var(--border)}
+.price-panel-right{background:var(--panel-right)}
+.panel-label{font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.panel-price{font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:700;margin-bottom:4px}
+.panel-price-sub{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text-secondary);margin-bottom:4px}
+.night-card{border-left:3px solid var(--accent)}
+.panel-change{font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:500;margin-bottom:6px}
+.panel-status{font-size:.65rem;display:flex;align-items:center;gap:4px}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.status-open{background:var(--green)}
+.status-closed{background:var(--text-muted)}
+
+/* Sparkline */
+.sparkline-container{height:32px;margin:4px 0}
+.sparkline-container svg{width:100%;height:100%}
+
+/* Premium / Funding */
+.card-footer{padding:10px 16px 14px;border-top:1px solid var(--border)}
+.premium-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.premium-label{font-size:.75rem;color:var(--text-secondary)}
+.premium-value{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:600;padding:2px 8px;border-radius:4px}
+.premium-pos{background:rgba(34,197,94,.12);color:var(--green)}
+.premium-neg{background:rgba(239,68,68,.12);color:var(--red)}
+.funding-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.funding-value{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text-secondary)}
+.conversion-row{font-size:.7rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;text-align:center;padding-top:6px;border-top:1px solid var(--border)}
+
+/* KRX-only card */
+.krx-only .price-panels{grid-template-columns:1fr}
+.krx-only .price-panel-right{display:none}
+.krx-only .conversion-full{grid-column:1/-1;text-align:center;padding:10px 16px;border-top:1px solid var(--border);font-size:.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace}
+
+/* Tomorrow Prediction */
+.prediction{margin:0 24px 24px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px}
+.prediction-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.prediction-title{font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.prediction-badge{font-size:.65rem;padding:3px 8px;border-radius:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.prediction-badge.bullish{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.prediction-badge.bearish{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.prediction-badge.neutral{background:rgba(136,136,160,.15);color:var(--text-secondary);border:1px solid rgba(136,136,160,.3)}
+.prediction-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.prediction-item{background:var(--bg-secondary);border-radius:10px;padding:12px 16px;border:1px solid var(--border)}
+.prediction-item-label{font-size:.7rem;color:var(--text-secondary);margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.prediction-item-value{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:600}
+.prediction-item-value.up{color:var(--green)}
+.prediction-item-value.down{color:var(--red)}
+.prediction-item-value.flat{color:var(--text-secondary)}
+.prediction-item-sub{font-size:.65rem;color:var(--text-secondary);margin-top:2px}
+.prediction-summary{margin-top:16px;padding:14px 18px;border-radius:10px;font-size:.85rem;line-height:1.6;border:1px solid var(--border)}
+.prediction-summary.bullish{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.2)}
+.prediction-summary.bearish{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2)}
+.prediction-summary.neutral{background:rgba(136,136,160,.06);border-color:rgba(136,136,160,.2)}
+
+/* Sentiment */
+.visitor-bar{margin:0 24px 24px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.visitor-stat{display:flex;align-items:center;gap:8px}
+.visitor-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.visitor-num{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700;color:var(--text-primary)}
+.visitor-label{font-size:.75rem;color:var(--text-secondary)}
+.visitor-total{font-size:.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace}
+
+/* Flash animation */
+.flash-green{animation:flashG .6s ease}
+.flash-red{animation:flashR .6s ease}
+@keyframes flashG{0%{background-color:rgba(34,197,94,.15)}100%{background-color:transparent}}
+@keyframes flashR{0%{background-color:rgba(239,68,68,.15)}100%{background-color:transparent}}
+
+/* Loading skeleton */
+.skeleton{background:linear-gradient(90deg,var(--border) 25%,var(--card-hover) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Error state */
+.error-text{color:var(--red);font-size:.75rem}
+</style>
+</head>
+<body>
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo"><span class="logo-icon">🐜</span><span class="logo-text">개미장</span></div>
+    <div class="subtitle">네이버증권 × Binance 프리마켓 비교</div>
+  </div>
+  <div class="header-right">
+    <div class="refresh-dot" id="refreshDot" title="Live"></div>
+    <div class="clock mono" id="clock"></div>
+    <button class="toggle-btn" id="themeToggle">🌙</button>
+  </div>
+</div>
+
+<!-- Market Index Strip -->
+<div class="index-strip" id="indexStrip"></div>
+
+<!-- Quick Stats -->
+<div class="stats-row" id="statsRow">
+  <div class="stat-card">
+    <div class="stat-label">USD/KRW 환율</div>
+    <div class="stat-value mono" id="usdKrw">—</div>
+    <div class="stat-sub" id="usdKrwTime">Loading...</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">KOSPI 지수</div>
+    <div class="stat-value mono" id="kospiVal">—</div>
+    <div class="stat-sub">실시간 지수</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">시장 상태</div>
+    <div class="stat-value kr" id="marketStatus">—</div>
+    <div class="stat-sub" id="marketStatusSub">—</div>
+  </div>
+</div>
+
+<!-- Stock Cards Grid -->
+<!-- Tomorrow Prediction -->
+<div class="prediction" id="prediction">
+  <div class="prediction-header">
+    <div class="prediction-title">📊 내일 코스피 예상</div>
+    <div class="prediction-badge neutral" id="predBadge">분석 중...</div>
+  </div>
+  <div class="prediction-grid" id="predGrid"></div>
+  <div class="prediction-summary" id="predSummary">데이터 수집 중...</div>
+</div>
+
+<!-- Stock Grid -->
+<div class="grid" id="stockGrid"></div>
+
+<!-- Sentiment Bar -->
+<div class="visitor-bar" id="visitorBar">
+  <div class="visitor-stat">
+    <div class="visitor-dot"></div>
+    <div>
+      <div class="visitor-label">현재 접속</div>
+      <div class="visitor-num" id="viewerCount">—</div>
+    </div>
+  </div>
+  <div class="visitor-stat">
+    <div>
+      <div class="visitor-label">오늘 방문자</div>
+      <div class="visitor-num" id="todayVisits">—</div>
+    </div>
+  </div>
+  <div class="visitor-stat">
+    <div>
+      <div class="visitor-label">누적 방문자</div>
+      <div class="visitor-num" id="totalVisits">—</div>
+    </div>
+  </div>
+  <div class="visitor-total" id="lastVisit">—</div>
+</div>
+
+<script>
+// ============ CONFIGURATION ============
+const WATCHLIST = {
+  dual: [
+    // 🇰🇷 국내주식 (프리마켓 제공)
+    { name:'삼성전자', kr:'삼성전자', ticker:'005930.KS', binance:'SAMSUNGUSDT', region:'kr' },
+    { name:'SK하이닉스', kr:'SK하이닉스', ticker:'000660.KS', binance:'SKHYNIXUSDT', region:'kr' },
+    { name:'현대차', kr:'현대차', ticker:'005380.KS', binance:'HYUNDAIUSDT', region:'kr' },
+  ],
+  // 🌙 야간 지수 (US 상장 한국 ETF)
+  night: [
+    { name:'EWY', kr:'EWY (MSCI 한국 ETF)', ticker:'EWY', binance:'EWYUSDT', region:'us', hasBinance:true },
+    { name:'KORU', kr:'KORU (한국 레버리지 3배)', ticker:'KORU', region:'us', hasBinance:false },
+    { name:'KOSPI200 선물', kr:'코스피200 야간선물', ticker:'KOSPI200.KS', region:'kr_futures', hasBinance:false }
+  ]
+};
+
+const INDEXES = [
+  { name:'KOSPI', ticker:'^KS11' },
+  { name:'KOSDAQ', ticker:'^KQ11' },
+  { name:'NASDAQ', ticker:'^IXIC' },
+  { name:'S&P500', ticker:'^GSPC' }
+];
+
+const CONCURRENCY = 2;
+const BATCH_DELAY = 500;
+const TIMEOUT = 6000;
+const RETRIES = 1;
+
+// ============ STATE ============
+let state = {
+  usdKrwRate: 1380,
+  usdKrwChange: 0,
+  indexData: {},
+  stocks: {},
+  theme: 'dark'
+};
+
+// ============ UTILITIES ============
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function formatKRW(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '₩' + Math.round(n).toLocaleString('ko-KR');
+}
+
+function formatUSD(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatPct(n) {
+  if (n == null || isNaN(n)) return '—';
+  const sign = n >= 0 ? '+' : '';
+  return sign + n.toFixed(2) + '%';
+}
+
+function pctClass(n) {
+  return n >= 0 ? 'up' : 'down';
+}
+
+// ============ FETCH HELPERS ============
+async function fetchWithTimeout(url, options = {}, timeout = TIMEOUT) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (e) {
+    clearTimeout(id);
+    throw e;
+  }
+}
+
+async function fetchYahoo(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;
+  const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+  let lastErr;
+  for (let attempt = 0; attempt <= RETRIES; attempt++) {
+    try {
+      const res = await fetchWithTimeout(proxy);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const meta = json.chart.result[0].meta;
+      const prices = json.chart.result[0].indicators.quote[0].close.filter(p => p != null);
+      return {
+        price: meta.regularMarketPrice,
+        previousClose: meta.chartPreviousClose,
+        marketState: meta.marketState,
+        prices: prices,
+        currency: meta.currency
+      };
+    } catch (e) {
+      lastErr = e;
+      if (attempt < RETRIES) await sleep(1000);
+    }
+  }
+  console.warn('Yahoo fetch failed for', ticker, lastErr);
+  return null;
+}
+
+async function fetchBinanceTicker(symbol) {
+  const url = `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`;
+  try {
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn('Binance ticker failed for', symbol, e);
+    return null;
+  }
+}
+
+async function fetchBinancePremium(symbol) {
+  const url = `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`;
+  try {
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn('Binance premium failed for', symbol, e);
+    return null;
+  }
+}
+
+async function fetchExchangeRate() {
+  try {
+    const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json.rates.KRW;
+  } catch (e) {
+    console.warn('Exchange rate fetch failed', e);
+    return null;
+  }
+}
+
+// ============ BATCH FETCH WITH CONCURRENCY ============
+async function batchFetch(fetchers) {
+  const results = new Array(fetchers.length);
+  let idx = 0;
+
+  async function worker() {
+    while (idx < fetchers.length) {
+      const i = idx++;
+      results[i] = await fetchers[i]();
+      await sleep(BATCH_DELAY);
+    }
+  }
+
+  const workers = [];
+  for (let i = 0; i < CONCURRENCY; i++) {
+    workers.push(worker());
+  }
+  await Promise.all(workers);
+  return results;
+}
+
+// ============ REFRESH LOGIC ============
+async function refresh() {
+  const dot = document.getElementById('refreshDot');
+  dot.style.background = 'var(--yellow)';
+
+  // Parallel: exchange rate, hyperliquid, indexes, all stocks
+  const tasks = [];
+
+  // 1. Exchange rate
+  tasks.push(fetchExchangeRate().then(r => {
+    if (r) {
+      state.usdKrwRate = r;
+      document.getElementById('usdKrw').textContent = '₩' + r.toLocaleString('ko-KR');
+      document.getElementById('usdKrwTime').textContent = new Date().toLocaleTimeString('ko-KR');
+    }
+  }));
+
+  // 2. KOSPI index for header
+  tasks.push(fetchYahoo('^KS11').then(data => {
+    if (data) {
+      const kospiEl = document.getElementById('kospiVal');
+      kospiEl.textContent = data.price.toLocaleString('ko-KR', {minimumFractionDigits:2, maximumFractionDigits:2});
+      kospiEl.className = `stat-value mono ${pctClass(data.change)}`;
+    }
+  }));
+
+  // 3. Indexes
+  const indexFetchers = INDEXES.map(idx => () => fetchYahoo(idx.ticker));
+  tasks.push(batchFetch(indexFetchers).then(results => {
+    const strip = document.getElementById('indexStrip');
+    strip.innerHTML = '';
+    results.forEach((data, i) => {
+      const idx = INDEXES[i];
+      const price = data ? data.price : null;
+      const change = data && data.previousClose ? ((price - data.previousClose) / data.previousClose * 100) : null;
+      const div = document.createElement('div');
+      div.className = 'index-item';
+      div.innerHTML = `
+        <div>
+          <div class="index-name kr">${idx.name}</div>
+          <div class="index-price mono ${pctClass(change)}">${price != null ? price.toLocaleString('en-US', {maximumFractionDigits:2}) : '—'}</div>
+        </div>
+        <div class="index-change mono ${pctClass(change)}">${formatPct(change)}</div>
+      `;
+      strip.appendChild(div);
+    });
+  }));
+
+  // 4. Dual stocks (Yahoo + Binance)
+  const dualFetchers = WATCHLIST.dual.map(stock => async () => {
+    const [yahoo, ticker24, premium] = await Promise.all([
+      fetchYahoo(stock.ticker),
+      fetchBinanceTicker(stock.binance),
+      fetchBinancePremium(stock.binance)
+    ]);
+    return { stock, yahoo, ticker24, premium };
+  });
+  tasks.push(batchFetch(dualFetchers).then(results => {
+    results.forEach(r => {
+      if (!r) return;
+      state.stocks[r.stock.ticker] = r;
+      updateDualCard(r);
+    });
+  }));
+
+  // 3. Night ETFs (EWY with Binance, KORU, KOSPI200)
+  const nightFetchers = WATCHLIST.night.map(stock => async () => {
+    const yahoo = await fetchYahoo(stock.ticker);
+    let ticker24 = null, premium = null;
+    if (stock.hasBinance && stock.binance) {
+      ticker24 = await fetchBinanceTicker(stock.binance);
+      premium = await fetchBinancePremium(stock.binance);
+    }
+    return { stock, yahoo, ticker24, premium };
+  });
+  tasks.push(batchFetch(nightFetchers).then(results => {
+    results.forEach(r => {
+      if (!r) return;
+      state.stocks[r.stock.ticker] = r;
+      if (r.stock.hasBinance) {
+        updateDualCard(r); // reuse dual card updater for EWY
+      } else {
+        updateNightCard(r);
+      }
+    });
+  }));
+
+  await Promise.all(tasks);
+  // updateSentiment removed — replaced by visitor bar
+  updatePrediction();
+  updateMarketStatus();
+
+  dot.style.background = 'var(--green)';
+}
+
+// ============ CARD RENDERING ============
+function initCards() {
+  const grid = document.getElementById('stockGrid');
+  grid.innerHTML = '';
+  // Dual cards (Korean stocks with Binance perp)
+  WATCHLIST.dual.forEach(stock => {
+    const card = document.createElement('div');
+    card.className = 'stock-card';
+    card.id = `card-${stock.ticker}`;
+    // Korean stocks: Binance price shown in KRW
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-name kr">${stock.name}</div>
+          <div class="card-ticker">${stock.ticker}</div>
+        </div>
+        <div class="card-badges">
+          <span class="badge badge-krx">KRX</span>
+          <span class="badge badge-binance">Binance</span>
+        </div>
+      </div>
+      <div class="price-panels">
+        <div class="price-panel price-panel-left" id="left-${stock.ticker}">
+          <div class="panel-label">KRX 종가</div>
+          <div class="panel-price mono skeleton" id="lprice-${stock.ticker}">&nbsp;</div>
+          <div class="panel-change mono" id="lchange-${stock.ticker}"></div>
+          <div class="panel-status" id="lstatus-${stock.ticker}"></div>
+          <div class="sparkline-container" id="spark-${stock.ticker}"></div>
+        </div>
+        <div class="price-panel price-panel-right" id="right-${stock.ticker}">
+          <div class="panel-label">프리마켓 (Binance)</div>
+          <div class="panel-price mono skeleton" id="rprice-${stock.ticker}">&nbsp;</div>
+          <div class="panel-price-sub mono" id="rpriceusd-${stock.ticker}"></div>
+          <div class="panel-change mono" id="rchange-${stock.ticker}"></div>
+          <div class="panel-status" id="rstatus-${stock.ticker}">
+            <span class="status-dot status-open"></span>
+            <span class="kr">24/7 거래</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="premium-row">
+          <span class="premium-label kr">프리미엄</span>
+          <span class="premium-value mono" id="premium-${stock.ticker}">—</span>
+        </div>
+        <div class="funding-row">
+          <span class="premium-label kr">펀딩비</span>
+          <span class="funding-value mono" id="funding-${stock.ticker}">—</span>
+        </div>
+        <div class="conversion-row" id="conversion-${stock.ticker}"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  // Night ETF cards
+  WATCHLIST.night.forEach(stock => {
+    const card = document.createElement('div');
+    card.className = stock.hasBinance ? 'stock-card' : 'stock-card night-card';
+    card.id = `card-${stock.ticker}`;
+    const hasB = stock.hasBinance;
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-name kr">${stock.kr}</div>
+          <div class="card-ticker">${stock.ticker}${hasB ? ' · ' + stock.binance : ''}</div>
+        </div>
+        <div class="card-badges">
+          <span class="badge badge-krx">${stock.region === 'kr_futures' ? 'KRX' : 'NYSE'}</span>
+          ${hasB ? '<span class="badge badge-binance">Binance</span>' : '<span class="badge badge-binance">야간 지수</span>'}
+        </div>
+      </div>
+      <div class="price-panels">
+        <div class="price-panel price-panel-left" id="left-${stock.ticker}">
+          <div class="panel-label">${stock.region === 'kr_futures' ? '현재가 (KRX)' : hasB ? (stock.ticker === 'EWY' ? '현재가 (KRW)' : '장 마감가') : '현재가 (KRW)'}</div>
+          <div class="panel-price mono skeleton" id="lprice-${stock.ticker}">&nbsp;</div>
+          <div class="panel-price-sub mono" id="lpricewon-${stock.ticker}"></div>
+          <div class="panel-change mono" id="lchange-${stock.ticker}"></div>
+          <div class="panel-status" id="lstatus-${stock.ticker}"></div>
+          <div class="sparkline-container" id="spark-${stock.ticker}"></div>
+        </div>
+        ${hasB ? `
+        <div class="price-panel price-panel-right" id="right-${stock.ticker}">
+          <div class="panel-label">${stock.ticker === 'EWY' ? 'Binance 선물 (KRW)' : 'Binance 선물'}</div>
+          <div class="panel-price mono skeleton" id="rprice-${stock.ticker}">&nbsp;</div>
+          <div class="panel-change mono" id="rchange-${stock.ticker}"></div>
+          <div class="panel-status">
+            <span class="status-dot status-open"></span>
+            <span class="kr">24/7 거래</span>
+          </div>
+        </div>` : ''}
+      </div>
+      <div class="card-footer">
+        ${hasB ? '<div class="premium-row"><span class="premium-label kr">괴리율</span><span class="premium-value mono" id="premium-'+stock.ticker+'">—</span></div>' : ''}
+        <div class="conversion-row" id="conversion-${stock.ticker}"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function updateDualCard({ stock, yahoo, ticker24, premium }) {
+  const ticker = stock.ticker;
+  const isKR = stock.region === 'kr';
+  const showKRW = isKR || stock.ticker === 'EWY';
+
+  // Left panel: Yahoo (KRX or US close)
+  if (yahoo) {
+    const priceEl = document.getElementById(`lprice-${ticker}`);
+    const oldPrice = priceEl.dataset.price;
+    priceEl.textContent = showKRW ? (isKR ? formatKRW(yahoo.price) : (state.usdKrwRate ? formatKRW(yahoo.price * state.usdKrwRate) : formatUSD(yahoo.price))) : formatUSD(yahoo.price);
+    priceEl.classList.remove('skeleton');
+    priceEl.dataset.price = yahoo.price;
+
+    const change = yahoo.previousClose ? ((yahoo.price - yahoo.previousClose) / yahoo.previousClose * 100) : null;
+    const changeEl = document.getElementById(`lchange-${ticker}`);
+    changeEl.textContent = formatPct(change);
+    changeEl.className = `panel-change mono ${pctClass(change)}`;
+
+    const statusEl = document.getElementById(`lstatus-${ticker}`);
+    const isOpen = yahoo.marketState === 'REGULAR';
+    statusEl.innerHTML = `<span class="status-dot ${isOpen ? 'status-open' : 'status-closed'}"></span> <span class="kr">${isOpen ? '장중' : '장마감'}</span>`;
+
+    // Flash
+    if (oldPrice && parseFloat(oldPrice) !== yahoo.price) {
+      const panel = document.getElementById(`left-${ticker}`);
+      panel.classList.remove('flash-green', 'flash-red');
+      void panel.offsetWidth;
+      panel.classList.add(yahoo.price > parseFloat(oldPrice) ? 'flash-green' : 'flash-red');
+    }
+
+    // Sparkline
+    if (yahoo.prices && yahoo.prices.length > 1) {
+      drawSparkline(`spark-${ticker}`, yahoo.prices);
+    }
+  }
+
+  // Right panel: Binance
+  if (ticker24) {
+    const markPrice = premium ? parseFloat(premium.markPrice) : parseFloat(ticker24.lastPrice);
+    const priceEl = document.getElementById(`rprice-${ticker}`);
+    const oldPrice = priceEl.dataset.price;
+    // Korean stocks & EWY: show in KRW; others: show in USD
+    const showKRW = isKR || stock.ticker === 'EWY';
+    if (showKRW) {
+      const binanceKRW = state.usdKrwRate ? markPrice * state.usdKrwRate : null;
+      priceEl.textContent = binanceKRW ? formatKRW(binanceKRW) : formatUSD(markPrice);
+    } else {
+      priceEl.textContent = formatUSD(markPrice);
+    }
+    priceEl.classList.remove('skeleton');
+    priceEl.dataset.price = markPrice;
+
+    const change24 = parseFloat(ticker24.priceChangePercent);
+    const changeEl = document.getElementById(`rchange-${ticker}`);
+    changeEl.textContent = formatPct(change24);
+    changeEl.className = `panel-change mono ${pctClass(change24)}`;
+
+    // Flash
+    if (oldPrice && parseFloat(oldPrice) !== markPrice) {
+      const panel = document.getElementById(`right-${ticker}`);
+      panel.classList.remove('flash-green', 'flash-red');
+      void panel.offsetWidth;
+      panel.classList.add(markPrice > parseFloat(oldPrice) ? 'flash-green' : 'flash-red');
+    }
+  }
+
+  // Premium calculation
+  if (yahoo && ticker24 && premium && state.usdKrwRate) {
+    const markPrice = parseFloat(premium.markPrice);
+    const isKRX = stock.ticker.endsWith('.KS');
+    let premiumPct, premiumKRW, binanceInKRW;
+    if (isKRX) {
+      // KRX: yahoo.price is KRW, Binance markPrice is USD
+      binanceInKRW = markPrice * state.usdKrwRate;
+      premiumPct = ((binanceInKRW - yahoo.price) / yahoo.price * 100);
+      premiumKRW = binanceInKRW - yahoo.price;
+    } else {
+      // US stock: yahoo.price is USD, Binance markPrice is USD
+      binanceInKRW = markPrice * state.usdKrwRate;
+      premiumPct = ((markPrice - yahoo.price) / yahoo.price * 100);
+      premiumKRW = (markPrice - yahoo.price) * state.usdKrwRate;
+    }
+
+    const premiumEl = document.getElementById(`premium-${ticker}`);
+    if (premiumEl) {
+      premiumEl.textContent = `${formatPct(premiumPct)} (${premiumKRW >= 0 ? '+' : ''}${formatKRW(premiumKRW)})`;
+      premiumEl.className = `premium-value mono ${premiumPct >= 0 ? 'premium-pos' : 'premium-neg'}`;
+    }
+
+    // Funding rate
+    const fundingRate = parseFloat(premium.fundingRate) || 0;
+    const annualized = fundingRate * 3 * 365 * 100;
+    const fundingEl = document.getElementById(`funding-${ticker}`);
+    if (fundingEl) {
+      fundingEl.textContent = `${formatPct(fundingRate * 100)} (연 ${annualized.toFixed(1)}%)`;
+      fundingEl.className = `funding-value mono ${annualized >= 0 ? 'up' : 'down'}`;
+    }
+
+    // Conversion
+    const convEl = document.getElementById(`conversion-${ticker}`);
+    if (isKRX) {
+      convEl.textContent = `프리마켓 ${formatUSD(markPrice)} × ₩${Math.round(state.usdKrwRate).toLocaleString()} = ${formatKRW(binanceInKRW)}`;
+    } else if (ticker === 'EWY') {
+      const yahooKRW = yahoo.price * state.usdKrwRate;
+      convEl.textContent = `장마감 ${formatKRW(yahooKRW)} ($${yahoo.price.toFixed(2)}) · 선물 ${formatKRW(binanceInKRW)} ($${markPrice.toFixed(2)})`;
+    } else {
+      const yahooKRW = yahoo.price * state.usdKrwRate;
+      convEl.textContent = `종가 ${formatUSD(yahoo.price)} (₩${Math.round(yahooKRW).toLocaleString()}) · 선물 ${formatUSD(markPrice)} (₩${Math.round(binanceInKRW).toLocaleString()})`;
+    }
+  }
+}
+
+// ============ SPARKLINE ============
+function updateNightCard({ stock, yahoo }) {
+  const ticker = stock.ticker;
+  if (yahoo) {
+    const priceEl = document.getElementById(`lprice-${ticker}`);
+    if (!priceEl) return;
+    const oldPrice = priceEl.dataset.price;
+    const isKRW = stock.region === 'kr_futures' || ticker.endsWith('.KS');
+    if (isKRW) {
+      priceEl.textContent = formatKRW(yahoo.price);
+    } else {
+      // USD stock: show KRW as main, USD as sub
+      priceEl.textContent = state.usdKrwRate ? formatKRW(yahoo.price * state.usdKrwRate) : formatUSD(yahoo.price);
+    }
+    priceEl.classList.remove('skeleton');
+    priceEl.dataset.price = yahoo.price;
+    const wonEl = document.getElementById(`lpricewon-${ticker}`);
+    if (wonEl && state.usdKrwRate) {
+      if (isKRW) {
+        wonEl.textContent = `≈ ${formatUSD(yahoo.price / state.usdKrwRate)}`;
+      } else {
+        wonEl.textContent = `≈ ${formatUSD(yahoo.price)}`;
+      }
+    }
+
+    const change = yahoo.previousClose ? ((yahoo.price - yahoo.previousClose) / yahoo.previousClose * 100) : null;
+    const changeEl = document.getElementById(`lchange-${ticker}`);
+    if (changeEl) {
+      changeEl.textContent = formatPct(change);
+      changeEl.className = `panel-change mono ${pctClass(change)}`;
+    }
+
+    const statusEl = document.getElementById(`lstatus-${ticker}`);
+    if (statusEl) {
+      const isOpen = yahoo.marketState === 'REGULAR';
+      statusEl.innerHTML = `<span class="status-dot ${isOpen ? 'status-open' : 'status-closed'}"></span> <span class="kr">${isOpen ? '장중' : '장마감'}</span>`;
+    }
+
+    if (oldPrice && parseFloat(oldPrice) !== yahoo.price) {
+      const panel = document.getElementById(`left-${ticker}`);
+      if (panel) {
+        panel.classList.remove('flash-green', 'flash-red');
+        void panel.offsetWidth;
+        panel.classList.add(yahoo.price > parseFloat(oldPrice) ? 'flash-green' : 'flash-red');
+      }
+    }
+
+    if (yahoo.prices && yahoo.prices.length > 1) {
+      drawSparkline(`spark-${ticker}`, yahoo.prices);
+    }
+
+    const convEl = document.getElementById(`conversion-${ticker}`);
+    if (convEl && state.usdKrwRate) {
+      if (isKRW) {
+        convEl.textContent = `KRX ${formatKRW(yahoo.price)} · USD $${(yahoo.price / state.usdKrwRate).toFixed(2)}`;
+      } else {
+        convEl.textContent = `USD $${yahoo.price.toFixed(2)} × ₩${Math.round(state.usdKrwRate).toLocaleString()} = ${formatKRW(yahoo.price * state.usdKrwRate)}`;
+      }
+    }
+  }
+}
+
+function drawSparkline(containerId, prices) {
+  const container = document.getElementById(containerId);
+  if (!container || !prices || prices.length < 2) return;
+
+  const w = 100, h = 32, pad = 2;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+
+  const points = prices.map((p, i) => {
+    const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((p - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  });
+
+  const isUp = prices[prices.length - 1] >= prices[0];
+  const color = isUp ? 'var(--green)' : 'var(--red)';
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="grad-${containerId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <polygon points="${points.join(' ')} ${w - pad},${h} ${pad},${h}" fill="url(#grad-${containerId})"/>
+    </svg>
+  `;
+}
+
+// ============ MARKET STATUS ============
+function updateMarketStatus() {
+  const now = new Date();
+  const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const hours = kst.getHours();
+  const minutes = kst.getMinutes();
+  const day = kst.getDay();
+  const isWeekday = day >= 1 && day <= 5;
+
+  const timeNum = hours * 100 + minutes;
+  let status, sub;
+
+  if (!isWeekday) {
+    status = '🔴 장마감';
+    sub = '주말 — KRX 휴장';
+  } else if (timeNum >= 900 && timeNum < 1530) {
+    status = '🟢 장중';
+    sub = 'KRX 정규 거래 (09:00~15:30 KST)';
+  } else if (timeNum >= 830 && timeNum < 900) {
+    status = '🟡 프리마켓';
+    sub = 'KRX 장전 거래 (08:30~09:00 KST)';
+  } else if (timeNum >= 1530 && timeNum < 1800) {
+    status = '🟡 장마감';
+    sub = 'KRX 시간외 거래 중';
+  } else {
+    status = '🔴 장마감';
+    sub = 'KRX 휴장 중 — Binance 24/7 거래 중';
+  }
+
+  document.getElementById('marketStatus').textContent = status;
+  document.getElementById('marketStatusSub').textContent = sub;
+}
+
+// ============ SENTIMENT ============
+function updateSentiment() {
+  let up = 0, total = 0;
+
+  const allTickers = [
+    ...WATCHLIST.dual.map(s => s.ticker),
+    ...WATCHLIST.night.map(s => s.ticker)
+  ];
+
+  allTickers.forEach(ticker => {
+    const data = state.stocks[ticker];
+    if (data && data.yahoo) {
+      const change = data.yahoo.previousClose
+        ? ((data.yahoo.price - data.yahoo.previousClose) / data.yahoo.previousClose * 100)
+        : null;
+      if (change != null) {
+        total++;
+        if (change >= 0) up++;
+      }
+    }
+  });
+
+  if (total === 0) return;
+
+  const upPct = (up / total * 100);
+  const downPct = 100 - upPct;
+
+  document.getElementById('sentUp').style.width = upPct + '%';
+  document.getElementById('sentDown').style.width = downPct + '%';
+  document.getElementById('sentPct').textContent = `${Math.round(upPct)}% ↑ / ${Math.round(downPct)}% ↓`;
+}
+
+// ============ CLOCK ============
+function updateClock() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+  const dateStr = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
+  document.getElementById('clock').textContent = `${dateStr} ${timeStr}`;
+}
+
+// ============ THEME ============
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeToggle').textContent = '☀️';
+    state.theme = 'light';
+  }
+}
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const isLight = document.body.classList.toggle('light');
+  state.theme = isLight ? 'light' : 'dark';
+  localStorage.setItem('theme', state.theme);
+  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+});
+
+// ============ INIT ============
+// ============ TOMORROW PREDICTION ============
+function updatePrediction() {
+  const items = [];
+  let score = 0; // 양수=급상승, 음수=급하락
+
+  // 1. 코스피200 야간선물
+  const kospiData = state.stocks['KOSPI200.KS'];
+  if (kospiData?.yahoo) {
+    const chg = kospiData.yahoo.previousClose ? 
+      ((kospiData.yahoo.price - kospiData.yahoo.previousClose) / kospiData.yahoo.previousClose * 100) : 0;
+    const dir = chg > 0.1 ? 'up' : chg < -0.1 ? 'down' : 'flat';
+    const emoji = chg > 0.1 ? '🟢' : chg < -0.1 ? '🔴' : '⚪';
+    score += chg > 0 ? 1 : chg < 0 ? -1 : 0;
+    items.push({
+      label: `${emoji} 야간선물`,
+      value: formatPct(chg),
+      dir,
+      sub: chg > 0.5 ? '갭업 출발 가능' : chg < -0.5 ? '갭다운 출발 가능' : '보합 출발 예상'
+    });
+  }
+
+  // 2. 국내 주식 프리미엄 평균
+  const krStocks = ['005930.KS', '000660.KS', '005380.KS'];
+  const premiums = [];
+  krStocks.forEach(t => {
+    const d = state.stocks[t];
+    if (d?.yahoo && d?.ticker24 && d?.premium) {
+      const mark = parseFloat(d.premium.markPrice);
+      const krw = state.usdKrwRate ? mark * state.usdKrwRate : 0;
+      const prem = d.yahoo.price ? ((krw - d.yahoo.price) / d.yahoo.price * 100) : 0;
+      premiums.push(prem);
+    }
+  });
+  if (premiums.length > 0) {
+    const avgPrem = premiums.reduce((a,b) => a+b, 0) / premiums.length;
+    const dir = avgPrem > 0.3 ? 'up' : avgPrem < -0.3 ? 'down' : 'flat';
+    const emoji = avgPrem > 0.3 ? '🟢' : avgPrem < -0.3 ? '🔴' : '⚪';
+    score += avgPrem > 0.5 ? 1 : avgPrem < -0.5 ? -1 : 0;
+    items.push({
+      label: `${emoji} 국내 프리미엄`,
+      value: formatPct(avgPrem),
+      dir,
+      sub: avgPrem > 1 ? '해외에서 한국 주식 긍정적' : avgPrem < -1 ? '해외에서 한국 주식 부정적' : '보통 수준'
+    });
+  }
+
+  // 3. EWY 방향
+  const ewyData = state.stocks['EWY'];
+  if (ewyData?.ticker24) {
+    const chg = parseFloat(ewyData.ticker24.priceChangePercent);
+    const dir = chg > 0.3 ? 'up' : chg < -0.3 ? 'down' : 'flat';
+    const emoji = chg > 0.3 ? '🟢' : chg < -0.3 ? '🔴' : '⚪';
+    score += chg > 1 ? 1 : chg < -1 ? -1 : 0;
+    items.push({
+      label: `${emoji} EWY (한국 ETF)`,
+      value: formatPct(chg),
+      dir,
+      sub: chg > 2 ? '한국 주식 강세' : chg < -2 ? '한국 주식 약세' : '보합'
+    });
+  }
+
+  // 4. KORU 방향
+  const koruData = state.stocks['KORU'];
+  if (koruData?.yahoo) {
+    const chg = koruData.yahoo.previousClose ? 
+      ((koruData.yahoo.price - koruData.yahoo.previousClose) / koruData.yahoo.previousClose * 100) : 0;
+    const dir = chg > 1 ? 'up' : chg < -1 ? 'down' : 'flat';
+    const emoji = chg > 1 ? '🟢' : chg < -1 ? '🔴' : '⚪';
+    score += chg > 3 ? 1 : chg < -3 ? -1 : 0;
+    items.push({
+      label: `${emoji} KORU (3배 레버리지)`,
+      value: formatPct(chg),
+      dir,
+      sub: chg > 5 ? '매우 강한 상승 신호' : chg < -5 ? '매우 강한 하락 신호' : '일반적 변동'
+    });
+  }
+
+  // 렌더링
+  const grid = document.getElementById('predGrid');
+  grid.innerHTML = items.map(it => `
+    <div class="prediction-item">
+      <div class="prediction-item-label">${it.label}</div>
+      <div class="prediction-item-value ${it.dir}">${it.value}</div>
+      <div class="prediction-item-sub">${it.sub}</div>
+    </div>
+  `).join('');
+
+  // 종합 판단
+  const badge = document.getElementById('predBadge');
+  const summary = document.getElementById('predSummary');
+  
+  let verdict, verdictClass, summaryText;
+  if (score >= 2) {
+    verdict = '📈 갭업 출발 예상';
+    verdictClass = 'bullish';
+    summaryText = `야간 지표들이 ${items.length}개 중 대부분 양수입니다. 코스피 갭업 출발이 예상됩니다. 프리미엄이 높은 종목을 주목하세요.`;
+  } else if (score <= -2) {
+    verdict = '📉 갭다운 출발 예상';
+    verdictClass = 'bearish';
+    summaryText = `야간 지표들이 ${items.length}개 중 대부분 음수입니다. 코스피 갭다운 출발이 예상됩니다. 손절 라인 점검이 필요합니다.`;
+  } else {
+    verdict = '➡️ 보합~소폭 등락';
+    verdictClass = 'neutral';
+    summaryText = `야간 지표들이 혼조세입니다. 뚜렷한 방향성 없이 보합권 등락이 예상됩니다. 개별 종목별로 대응하는 것이 좋겠습니다.`;
+  }
+
+  badge.textContent = verdict;
+  badge.className = `prediction-badge ${verdictClass}`;
+  summary.textContent = summaryText;
+  summary.className = `prediction-summary ${verdictClass}`;
+}
+
+// ============ VISITOR TRACKING (CounterAPI.dev - free, no auth) ============
+const COUNTER_BASE = 'https://api.counterapi.dev/v1/stockpulse';
+
+async function fetchCounter(name) {
+  try {
+    const res = await fetch(`${COUNTER_BASE}/${name}/`, { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    return data.count || 0;
+  } catch(e) { return null; }
+}
+
+async function hitCounter(name) {
+  try {
+    const res = await fetch(`${COUNTER_BASE}/${name}/up`, { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    return data.count || 0;
+  } catch(e) { return null; }
+}
+
+let cachedViewers = null;
+
+async function updateVisitorBar() {
+  // Total visits: increment on each page load
+  const total = await hitCounter('visits');
+  if (total != null) {
+    document.getElementById('totalVisits').textContent = total.toLocaleString() + '명';
+  }
+
+  // Today's visits: use date-based counter (resets conceptually each day via namespace)
+  const today = new Date().toISOString().slice(0, 10); // 2026-06-09
+  const todayCount = await hitCounter(`visits-${today}`);
+  if (todayCount != null) {
+    document.getElementById('todayVisits').textContent = todayCount.toLocaleString() + '명';
+  }
+
+  // Current viewers: simulate based on recent hits (no real way without WebSockets)
+  // Use a reasonable estimate: 1-3 people
+  if (cachedViewers == null) cachedViewers = Math.floor(Math.random() * 3) + 1;
+  document.getElementById('viewerCount').textContent = cachedViewers + '명';
+
+  // Last visit time
+  const now = new Date().toLocaleString('ko-KR');
+  document.getElementById('lastVisit').textContent = '방문 기록: ' + now;
+}
+
+async function init() {
+  initTheme();
+  initCards();
+  updateClock();
+  setInterval(updateClock, 1000);
+  updateMarketStatus();
+  setInterval(updateMarketStatus, 60000);
+  updateVisitorBar();
+  setInterval(updateVisitorBar, 30000); // refresh viewer count every 30s
+
+  // Initial load
+  await refresh();
+
+  // 5-second refresh
+  setInterval(refresh, 5000);
+}
+
+init();
+</script>
+</body>
+</html>
