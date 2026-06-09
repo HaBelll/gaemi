@@ -1,0 +1,22 @@
+// Vercel Serverless Function - 네이버증권 프록시
+export default async function handler(req, res) {
+  const { code } = req.query;
+  if (!code) return res.status(400).json({error: 'code required'});
+  
+  try {
+    const r = await fetch(`https://finance.naver.com/item/main.naver?code=${code}`);
+    const html = await r.text();
+    
+    // 가격 추출
+    const priceM = html.match(/class="no_today".*?<span class="blind">([\d,]+)/s);
+    const prevM = html.match(/class="no_exday".*?<em.*?<span class="blind">([\d,]+)/s);
+    
+    const price = priceM ? +priceM[1].replace(/,/g, '') : null;
+    const prev = prevM ? +prevM[1].replace(/,/g, '') : null;
+    
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.json({ price, prev, source: 'naver' });
+  } catch(e) {
+    res.status(500).json({error: e.message});
+  }
+}
