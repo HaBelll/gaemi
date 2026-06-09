@@ -235,11 +235,13 @@ const WATCHLIST = {
     { name:'SK하이닉스', kr:'SK하이닉스', ticker:'000660.KS', binance:'SKHYNIXUSDT', region:'kr' },
     { name:'현대차', kr:'현대차', ticker:'005380.KS', binance:'HYUNDAIUSDT', region:'kr' },
   ],
-  // 🌙 야간 지수 (US 상장 한국 ETF)
+  // 🌙 야간 지수 (US 상장 한국 ETF + 반도체)
   night: [
     { name:'EWY', kr:'EWY (MSCI 한국 ETF)', ticker:'EWY', binance:'EWYUSDT', region:'us', hasBinance:true },
     { name:'KORU', kr:'KORU (한국 레버리지 3배)', ticker:'KORU', region:'us', hasBinance:false },
-    { name:'KOSPI200 선물', kr:'코스피200 야간선물', ticker:'KOSPI200.KS', region:'kr_futures', hasBinance:false }
+    { name:'KOSPI200 선물', kr:'코스피200 야간선물', ticker:'KOSPI200.KS', region:'kr_futures', hasBinance:false },
+    { name:'Micron', kr:'마이크론 (반도체)', ticker:'MU', binance:'MUUSDT', region:'us', hasBinance:true },
+    { name:'SanDisk', kr:'샌디스크 (WDC)', ticker:'WDC', binance:'WDCUSDT', region:'us', hasBinance:true }
   ]
 };
 
@@ -553,7 +555,7 @@ function initCards() {
       </div>
       <div class="price-panels">
         <div class="price-panel price-panel-left" id="left-${stock.ticker}">
-          <div class="panel-label">${stock.region === 'kr_futures' ? '현재가 (KRX)' : hasB ? (stock.ticker === 'EWY' ? '현재가 (KRW)' : '장 마감가') : '현재가 (KRW)'}</div>
+          <div class="panel-label">${stock.region === 'kr_futures' ? '현재가 (KRX)' : hasB ? (stock.ticker === 'EWY' || stock.ticker === 'MU' || stock.ticker === 'WDC' ? '현재가 (KRW)' : '장 마감가') : '현재가 (KRW)'}</div>
           <div class="panel-price mono skeleton" id="lprice-${stock.ticker}">&nbsp;</div>
           <div class="panel-price-sub mono" id="lpricewon-${stock.ticker}"></div>
           <div class="panel-change mono" id="lchange-${stock.ticker}"></div>
@@ -562,7 +564,7 @@ function initCards() {
         </div>
         ${hasB ? `
         <div class="price-panel price-panel-right" id="right-${stock.ticker}">
-          <div class="panel-label">${stock.ticker === 'EWY' ? 'Binance 선물 (KRW)' : 'Binance 선물'}</div>
+          <div class="panel-label">${stock.ticker === 'EWY' || stock.ticker === 'MU' || stock.ticker === 'WDC' ? 'Binance 선물 (KRW)' : 'Binance 선물'}</div>
           <div class="panel-price mono skeleton" id="rprice-${stock.ticker}">&nbsp;</div>
           <div class="panel-change mono" id="rchange-${stock.ticker}"></div>
           <div class="panel-status">
@@ -583,7 +585,7 @@ function initCards() {
 function updateDualCard({ stock, yahoo, ticker24, premium }) {
   const ticker = stock.ticker;
   const isKR = stock.region === 'kr';
-  const showKRW = isKR || stock.ticker === 'EWY';
+  const showKRW = isKR || stock.ticker === 'EWY' || stock.ticker === 'MU' || stock.ticker === 'WDC';
 
   // Left panel: Yahoo (KRX or US close)
   if (yahoo) {
@@ -621,8 +623,8 @@ function updateDualCard({ stock, yahoo, ticker24, premium }) {
     const markPrice = premium ? parseFloat(premium.markPrice) : parseFloat(ticker24.lastPrice);
     const priceEl = document.getElementById(`rprice-${ticker}`);
     const oldPrice = priceEl.dataset.price;
-    // Korean stocks & EWY: show in KRW; others: show in USD
-    const showKRW = isKR || stock.ticker === 'EWY';
+    // Korean stocks, EWY, Micron, SanDisk: show in KRW; others: show in USD
+    const showKRW = isKR || stock.ticker === 'EWY' || stock.ticker === 'MU' || stock.ticker === 'WDC';
     if (showKRW) {
       const binanceKRW = state.usdKrwRate ? markPrice * state.usdKrwRate : null;
       priceEl.textContent = binanceKRW ? formatKRW(binanceKRW) : formatUSD(markPrice);
@@ -682,7 +684,7 @@ function updateDualCard({ stock, yahoo, ticker24, premium }) {
     const convEl = document.getElementById(`conversion-${ticker}`);
     if (isKRX) {
       convEl.textContent = `프리마켓 ${formatUSD(markPrice)} × ₩${Math.round(state.usdKrwRate).toLocaleString()} = ${formatKRW(binanceInKRW)}`;
-    } else if (ticker === 'EWY') {
+    } else if (ticker === 'EWY' || ticker === 'MU' || ticker === 'WDC') {
       const yahooKRW = yahoo.price * state.usdKrwRate;
       convEl.textContent = `장마감 ${formatKRW(yahooKRW)} ($${yahoo.price.toFixed(2)}) · 선물 ${formatKRW(binanceInKRW)} ($${markPrice.toFixed(2)})`;
     } else {
