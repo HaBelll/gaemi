@@ -124,7 +124,14 @@ async function refresh(){
   await Promise.all(bp);document.getElementById('fx').textContent=fK(S.fx);renderAll();
 
   const sp=[];
-  [...W.dual,...W.night].forEach(s=>{sp.push(fY(s.tk).then(d=>{if(d){S.st[s.tk]={...(S.st[s.tk]||{}),yh:d};renderAll();}}));});
+  // KRX 종목: 네이버증권 API (서버 프록시 경유)
+  W.dual.forEach(s=>{
+    sp.push(fetch(`/api/proxy?code=${s.tk.replace('.KS','')}`).then(r=>r.json()).then(d=>{
+      if(d.price){S.st[s.tk]={...(S.st[s.tk]||{}),nv:{price:d.price,prev:d.prev||d.price,cur:'KRW'}};renderAll();}
+    }).catch(()=>{}));
+  });
+  // 야간: Binance 데이터
+  [...W.night].forEach(s=>{sp.push(fY(s.tk).then(d=>{if(d){S.st[s.tk]={...(S.st[s.tk]||{}),yh:d};renderAll();}}));});
   const strip=document.getElementById('strip');
   if(!strip.children.length){strip.innerHTML=IDX.map(i=>`<div class="idx" data-i="${i.t}"><div><div class="idx-n">${i.n}</div><div class="idx-p" style="color:var(--t3)">로딩...</div></div><div class="idx-c" style="color:var(--t3)">—</div></div>`).join('');}
   IDX.forEach(idx=>{fY(idx.t).then(d=>{if(d){const el=strip.querySelector(`[data-i="${idx.t}"]`);if(el){const chg=((d.price-d.prev)/d.prev*100);el.querySelector('.idx-p').textContent=d.price.toLocaleString('en-US',{maximumFractionDigits:2});el.querySelector('.idx-p').className='idx-p mono '+pC(chg);const ce=el.querySelector('.idx-c');ce.textContent=fP(chg);ce.className='idx-c mono '+pC(chg);}}});});
@@ -135,24 +142,27 @@ async function refresh(){
 function renderAll(){const g=document.getElementById('grid');let h='';W.dual.forEach(s=>{h+=dCard(s);});W.night.forEach(s=>{h+=s.hb?dCard(s):nCard(s);});g.innerHTML=h;}
 
 function dCard(s){
-  const d=S.st[s.tk]||{};const bt=d.bt,bp=d.bp,yh=d.yh;
+  const d=S.st[s.tk]||{};const bt=d.bt,bp=d.bp,yh=d.yh,nv=d.nv;
   const isKR=s.tk.endsWith('.KS');
   const showKRW=isKR||s.tk==='EWY'||s.tk==='MU'||s.tk==='WDC';
   const binP=bp?+bp.markPrice:(bt?+bt.lastPrice:null);
   const binKRW=binP?binP*S.fx:null;
-  const yhP=yh?.price;
+  // KRX 종목은 네이버증권 데이터 우선, 그 외는 야후
+  const yhP=nv?.price||yh?.price;
+  const yhPrev=nv?.prev||yh?.prev;
+  const yhCur=nv?.cur||yh?.cur;
   const bChg=bt?+bt.priceChangePercent:null;
-  const yhChg=yhP&&yh?.prev?((yhP-yh.prev)/yh.prev*100):null;
+  const yhChg=yhP&&yhPrev?((yhP-yhPrev)/yhPrev*100):null;
 
   let pm='';
   if(yhP&&binKRW&&yhP>0){const pr=((binKRW-yhP)/yhP*100);pm=`<div class="pr"><span class="lb">${isKR?'프리미엄':'괴리율'}</span><span class="vl ${pr>=0?'pos':'neg'}">${fP(pr)} (${pr>=0?'+':''}${fK(binKRW-yhP)})</span></div>`;}
 
-  const lp=yhP?(showKRW?(yh?.cur==='KRW'?fK(yhP):fK(yhP*S.fx)):fU(yhP)):(binKRW?fK(binKRW):'—');
+  const lp=yhP?(showKRW?(yhCur==='KRW'?fK(yhP):fK(yhP*S.fx)):fU(yhP)):'—';
   const rp=binP?(showKRW?fK(binKRW):fU(binP)):'—';
   const rs=binP?(showKRW?fU(binP):fK(binKRW)):'';
 
   return`<div class="card"><div class="card-h"><div><div class="card-nm">${s.nm}</div><div class="card-tk">${s.tk} · ${s.bn}</div></div><div class="badges"><span class="bg bg-k">${isKR?'KRX':'NYSE'}</span><span class="bg bg-b">Binance</span></div></div>
-  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?'KRX 종가':'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd sd-c"></span>${yh?.ms==='REGULAR'?'🟢 장중':'⚫ 장마감'}</div></div>
+  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?'KRX 종가 (네이버증권)':'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd sd-c"></span>⚫ 장마감</div></div>
   <div class="pnl pnl-r"><div class="pnl-lb">Binance 프리마켓</div><div class="pnl-pr mono">${rp}</div><div class="pnl-ps mono">${rs}</div><div class="pnl-ch mono ${pC(bChg)}">${bChg!=null?fP(bChg):'—'}</div><div class="pnl-st"><span class="sd sd-o"></span>24/7</div></div></div>
   <div class="card-f">${pm}${binP?`<div class="conv">${showKRW?fU(binP)+' × ₩'+Math.round(S.fx).toLocaleString()+' = '+fK(binKRW):fK(binKRW)+' = '+fU(binP)}</div>`:''}</div></div>`;
 }
