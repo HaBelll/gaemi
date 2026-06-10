@@ -13,9 +13,7 @@ export default async function handler(req, res) {
 
   try {
     const url = `https://fapi.binance.com/fapi/v1/${endpoint}?symbol=${encodeURIComponent(symbol)}`;
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
+    const r = await fetch(url);
     if (!r.ok) return res.status(r.status).json({ error: 'Binance API error', status: r.status, url: url });
     const data = await r.json();
     res.json(data);
