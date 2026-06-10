@@ -16,10 +16,10 @@ export default async function handler(req, res) {
     const r = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-    if (!r.ok) return res.status(r.status).json({ error: 'Binance API error' });
+    if (!r.ok) return res.status(r.status).json({ error: 'Binance API error', status: r.status, url: url });
     const data = await r.json();
     res.json(data);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message, stack: e.stack });
   }
 }
