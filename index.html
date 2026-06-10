@@ -112,6 +112,13 @@ const fK=n=>n==null?'—':'₩'+Math.round(n).toLocaleString('ko-KR');
 const fU=n=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fP=n=>n==null?'—':(n>=0?'+':'')+n.toFixed(2)+'%';
 const pC=n=>n>0?'up':n<0?'down':'';
+function mktOpen(isKR){
+  const n=new Date(),k=new Date(n.toLocaleString('en-US',{timeZone:isKR?'Asia/Seoul':'America/New_York'}));
+  const d=k.getDay(),h=k.getHours(),m=k.getMinutes(),t=h*100+m;
+  if(d<1||d>5)return false;
+  if(isKR)return t>=900&&t<1530;
+  return t>=930&&t<1600;
+}
 async function ft(u,o={},ms=5000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{...o,signal:c.signal});clearTimeout(t);return r;}catch(e){clearTimeout(t);throw e;}}
 async function fY(tk){try{let r;try{r=await ft(`/api/yahoo?symbol=${encodeURIComponent(tk)}`,{},5000);if(r.ok){const d=await r.json();return{price:d.price,prev:d.prev,ms:d.ms,cur:d.cur,prices:d.prices||[]};}}catch{}const u=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tk)}?interval=1d&range=5d`;r=await ft(`https://corsproxy.io/?${encodeURIComponent(u)}`,{},6000);if(!r.ok)return null;const d=await r.json(),m=d.chart.result[0].meta;const prices=d.chart.result[0].indicators?.quote?.[0]?.close?.filter(Boolean)||[];const prev=prices.length>=2?prices[prices.length-2]:m.chartPreviousClose||m.previousClose;return{price:m.regularMarketPrice,prev:prev,ms:m.marketState,cur:m.currency,prices:prices};}catch{return null;}}
 async function fBT(s){try{const r=await ft(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${s}`);return r.ok?await r.json():null;}catch{return null;}}
@@ -158,7 +165,7 @@ function dCard(s){
   const yhCur=nv?.cur||yh?.cur;
   const bChg=bt?+bt.priceChangePercent:null;
   const yhChg=yhP&&yhPrev?((yhP-yhPrev)/yhPrev*100):null;
-  const mktLabel=isKR?'장마감':'NYSE 장마감';
+  const isOpen=mktOpen(isKR);const mktLabel=isKR?(isOpen?'장중':'장마감'):(isOpen?'NYSE 장중':'NYSE 장마감');
 
   let pm='';
   if(yhP&&binKRW&&yhP>0){const yhKRW=yhCur==='KRW'?yhP:(yhP||0)*S.fx;const diff=binKRW-yhKRW;const pr=yhKRW>0?(diff/yhKRW*100):0;pm=`<div class="pr"><span class="lb">현재가 vs 프리마켓</span><span class="vl ${pr>=0?'pos':'neg'}">${diff>=0?'▲':'▼'} ${fK(Math.abs(diff))}</span></div>`;}
@@ -168,7 +175,7 @@ function dCard(s){
   const rs=binP?(showKRW?fU(binP):fK(binKRW)):'';
 
   return`<div class="card"><div class="card-h"><div><div class="card-nm">${s.nm}</div><div class="card-tk">${s.tk} · ${s.bn}</div></div><div class="badges"><span class="bg bg-k">${isKR?'KRX':'NYSE'}</span><span class="bg bg-b">Binance</span></div></div>
-  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?(nv?'KRX 종가 (네이버증권)':'KRX 종가 (Yahoo)'):'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd sd-c"></span>⚫ ${mktLabel}</div></div>
+  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?(nv?'KRX 종가 (네이버증권)':'KRX 종가 (Yahoo)'):'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd ${isOpen?'sd-o':'sd-c'}"></span>${isOpen?'🟢':'⚫'} ${mktLabel}</div></div>
   <div class="pnl pnl-r"><div class="pnl-lb">Binance 프리마켓</div><div class="pnl-pr mono">${rp}</div><div class="pnl-ps mono">${rs}</div><div class="pnl-ch mono ${pC(bChg)}">${bChg!=null?fP(bChg):'—'}</div><div class="pnl-st"><span class="sd sd-o"></span>24/7</div></div></div>
   <div class="card-f">${pm}${binP?`<div class="conv">${showKRW?fU(binP)+' × ₩'+Math.round(S.fx).toLocaleString()+' = '+fK(binKRW):fK(binKRW)+' = '+fU(binP)}</div>`:''}</div></div>`;
 }
