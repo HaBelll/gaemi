@@ -17,7 +17,14 @@ export default async function handler(req, res) {
     const d = await r.json();
     const m = d.chart.result[0].meta;
     const prices = d.chart.result[0].indicators?.quote?.[0]?.close?.filter(Boolean) || [];
-    const prev = prices.length >= 2 ? prices[prices.length - 1] : m.chartPreviousClose || m.previousClose;
+    const prev = (() => {
+      if (prices.length < 2) return m.chartPreviousClose || m.previousClose;
+      const last = prices[prices.length - 1];
+      const cur = m.regularMarketPrice;
+      // prices[-1]이 현재가와 같으면 (장중/방금 장마감) → prices[-2] 사용
+      if (cur && Math.abs(last - cur) / cur < 0.005) return prices[prices.length - 2];
+      return last;
+    })();
 
     res.json({
       price: m.regularMarketPrice,
