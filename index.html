@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>개미장 — 네이버증권 × Binance 프리마켓</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>개미짱 — 네이버증권 × Binance 프리마켓</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg0:#0a0a0f;--bg1:#12121a;--bg2:#16161f;--bd:#2a2a3a;--bd2:#3a3a5a;--t1:#e8e8f0;--t2:#8888a0;--t3:#555570;--green:#00e676;--red:#ff1744;--blue:#448aff;--cyan:#00e5ff;--orange:#ff9100;--accent:#6366f1;--card:rgba(22,22,31,.85);--strip:rgba(18,18,26,.9)}
@@ -101,7 +104,7 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg0);color:v
 <div class="grid" id="grid"></div>
 <div class="vbar"><div class="vs"><div class="dot"></div><div><div class="vl">현재 접속</div><div class="vn" id="vc">—</div></div></div><div class="vs"><div><div class="vl">오늘 방문</div><div class="vn" id="tv">—</div></div></div><div class="vs"><div><div class="vl">누적 방문</div><div class="vn" id="tt">—</div></div></div><div style="font-size:.65rem;color:var(--t3)" id="lv">—</div></div>
 <script>
-const W={dual:[{nm:'삼성전자',tk:'005930.KS',bn:'SAMSUNGUSDT'},{nm:'SK하이닉스',tk:'000660.KS',bn:'SKHYNIXUSDT'},{nm:'현대차',tk:'005380.KS',bn:'HYUNDAIUSDT'}],night:[{nm:'EWY',nm2:'EWY (MSCI 한국 ETF)',tk:'EWY',bn:'EWYUSDT',hb:1},{nm:'마이크론',nm2:'마이크론 (반도체)',tk:'MU',bn:'MUUSDT',hb:1},{nm:'샌디스크',nm2:'샌디스크 (WDC)',tk:'WDC',bn:'WDCUSDT',hb:1}]};
+const W={dual:[{nm:'삼성전자',tk:'005930.KS',bn:'SAMSUNGUSDT'},{nm:'SK하이닉스',tk:'000660.KS',bn:'SKHYNIXUSDT'},{nm:'현대차',tk:'005380.KS',bn:'HYUNDAIUSDT'}],night:[{nm:'KORU',nm2:'KORU (3x 한국 ETF)',tk:'KORU',bn:'KORUUSDT',hb:0},{nm:'코스피200 야간선물',nm2:'KOSPI200 선물',tk:'^KS200',bn:'',hb:0},{nm:'EWY',nm2:'EWY (MSCI 한국 ETF)',tk:'EWY',bn:'EWYUSDT',hb:1},{nm:'마이크론',nm2:'마이크론 (반도체)',tk:'MU',bn:'MUUSDT',hb:1},{nm:'샌디스크',nm2:'샌디스크 (WDC)',tk:'WDC',bn:'WDCUSDT',hb:1}]};
 const IDX=[{n:'KOSPI',t:'^KS11'},{n:'KOSDAQ',t:'^KQ11'},{n:'NASDAQ',t:'^IXIC'},{n:'S&P500',t:'^GSPC'}];
 const CB='https://api.counterapi.dev/v1/stockpulse';
 let S={fx:1529,st:{}};
@@ -110,7 +113,7 @@ const fU=n=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,
 const fP=n=>n==null?'—':(n>=0?'+':'')+n.toFixed(2)+'%';
 const pC=n=>n>0?'up':n<0?'down':'';
 async function ft(u,o={},ms=5000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{...o,signal:c.signal});clearTimeout(t);return r;}catch(e){clearTimeout(t);throw e;}}
-async function fY(tk){try{const u=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tk)}?interval=1d&range=5d`;const r=await ft(`https://corsproxy.io/?${encodeURIComponent(u)}`,{},6000);if(!r.ok)return null;const d=await r.json(),m=d.chart.result[0].meta;return{price:m.regularMarketPrice,prev:m.chartPreviousClose||m.previousClose,ms:m.marketState,cur:m.currency,prices:d.chart.result[0].indicators?.quote?.[0]?.close?.filter(Boolean)||[]};}catch{return null;}}
+async function fY(tk){try{const u=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tk)}?interval=1d&range=5d`;const r=await ft(`https://corsproxy.io/?${encodeURIComponent(u)}`,{},6000);if(!r.ok)return null;const d=await r.json(),m=d.chart.result[0].meta;const prices=d.chart.result[0].indicators?.quote?.[0]?.close?.filter(Boolean)||[];const prev=prices.length>=2?prices[prices.length-2]:m.chartPreviousClose||m.previousClose;return{price:m.regularMarketPrice,prev:prev,ms:m.marketState,cur:m.currency,prices:prices};}catch{return null;}}
 async function fBT(s){try{const r=await ft(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${s}`);return r.ok?await r.json():null;}catch{return null;}}
 async function fBP(s){try{const r=await ft(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${s}`);return r.ok?await r.json():null;}catch{return null;}}
 async function fFx(){try{const r=await ft('https://api.exchangerate-api.com/v4/latest/USD');return r.ok?(await r.json()).rates.KRW:null;}catch{return null;}}
@@ -124,17 +127,19 @@ async function refresh(){
   await Promise.all(bp);document.getElementById('fx').textContent=fK(S.fx);renderAll();
 
   const sp=[];
-  // KRX 종목: 네이버증권 API (서버 프록시 경유)
+  // KRX 종목: 네이버증권 API + Yahoo 폴백
   W.dual.forEach(s=>{
     sp.push(fetch(`/api/proxy?code=${s.tk.replace('.KS','')}`).then(r=>r.json()).then(d=>{
       if(d.price){S.st[s.tk]={...(S.st[s.tk]||{}),nv:{price:d.price,prev:d.prev||d.price,cur:'KRW'}};renderAll();}
     }).catch(()=>{}));
+    // Yahoo Finance 폴백 (네이버 프록시 실패 시)
+    sp.push(fY(s.tk).then(d=>{if(d){S.st[s.tk]={...(S.st[s.tk]||{}),yh:d};renderAll();}}));
   });
   // 야간: Binance 데이터
   [...W.night].forEach(s=>{sp.push(fY(s.tk).then(d=>{if(d){S.st[s.tk]={...(S.st[s.tk]||{}),yh:d};renderAll();}}));});
   const strip=document.getElementById('strip');
   if(!strip.children.length){strip.innerHTML=IDX.map(i=>`<div class="idx" data-i="${i.t}"><div><div class="idx-n">${i.n}</div><div class="idx-p" style="color:var(--t3)">로딩...</div></div><div class="idx-c" style="color:var(--t3)">—</div></div>`).join('');}
-  IDX.forEach(idx=>{fY(idx.t).then(d=>{if(d){const el=strip.querySelector(`[data-i="${idx.t}"]`);if(el){const chg=((d.price-d.prev)/d.prev*100);el.querySelector('.idx-p').textContent=d.price.toLocaleString('en-US',{maximumFractionDigits:2});el.querySelector('.idx-p').className='idx-p mono '+pC(chg);const ce=el.querySelector('.idx-c');ce.textContent=fP(chg);ce.className='idx-c mono '+pC(chg);}}});});
+  IDX.forEach(idx=>{fY(idx.t).then(d=>{if(d){const el=strip.querySelector(`[data-i="${idx.t}"]`);if(el){const chg=((d.price-d.prev)/d.prev*100);el.querySelector('.idx-p').textContent=d.price.toLocaleString('en-US',{maximumFractionDigits:2});el.querySelector('.idx-p').style.color='';el.querySelector('.idx-p').className='idx-p mono '+pC(chg);const ce=el.querySelector('.idx-c');ce.textContent=fP(chg);ce.style.color='';ce.className='idx-c mono '+pC(chg);}}});});
   await Promise.all(sp);updatePred();updateVisitor();
   const el=Math.round(performance.now()-t0);dot.style.background='var(--green)';document.getElementById('lt').textContent=el+'ms';
 }
@@ -155,14 +160,14 @@ function dCard(s){
   const yhChg=yhP&&yhPrev?((yhP-yhPrev)/yhPrev*100):null;
 
   let pm='';
-  if(yhP&&binKRW&&yhP>0){const pr=((binKRW-yhP)/yhP*100);pm=`<div class="pr"><span class="lb">${isKR?'프리미엄':'괴리율'}</span><span class="vl ${pr>=0?'pos':'neg'}">${fP(pr)} (${pr>=0?'+':''}${fK(binKRW-yhP)})</span></div>`;}
+  if(yhP&&binKRW&&yhP>0){const yhKRW=yhCur==='KRW'?yhP:(yhP||0)*S.fx;const diff=binKRW-yhKRW;const pr=yhKRW>0?(diff/yhKRW*100):0;pm=`<div class="pr"><span class="lb">현재가 vs 프리마켓</span><span class="vl ${pr>=0?'pos':'neg'}">${diff>=0?'▲':'▼'} ${fK(Math.abs(diff))}</span></div>`;}
 
   const lp=yhP?(showKRW?(yhCur==='KRW'?fK(yhP):fK(yhP*S.fx)):fU(yhP)):'—';
   const rp=binP?(showKRW?fK(binKRW):fU(binP)):'—';
   const rs=binP?(showKRW?fU(binP):fK(binKRW)):'';
 
   return`<div class="card"><div class="card-h"><div><div class="card-nm">${s.nm}</div><div class="card-tk">${s.tk} · ${s.bn}</div></div><div class="badges"><span class="bg bg-k">${isKR?'KRX':'NYSE'}</span><span class="bg bg-b">Binance</span></div></div>
-  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?'KRX 종가 (네이버증권)':'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd sd-c"></span>⚫ 장마감</div></div>
+  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?(nv?'KRX 종가 (네이버증권)':'KRX 종가 (Yahoo)'):'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd sd-c"></span>⚫ 장마감</div></div>
   <div class="pnl pnl-r"><div class="pnl-lb">Binance 프리마켓</div><div class="pnl-pr mono">${rp}</div><div class="pnl-ps mono">${rs}</div><div class="pnl-ch mono ${pC(bChg)}">${bChg!=null?fP(bChg):'—'}</div><div class="pnl-st"><span class="sd sd-o"></span>24/7</div></div></div>
   <div class="card-f">${pm}${binP?`<div class="conv">${showKRW?fU(binP)+' × ₩'+Math.round(S.fx).toLocaleString()+' = '+fK(binKRW):fK(binKRW)+' = '+fU(binP)}</div>`:''}</div></div>`;
 }
@@ -172,11 +177,11 @@ function nCard(s){
   const binP=bp?+bp.markPrice:(bt?+bt.lastPrice:null);
   const binKRW=binP?binP*S.fx:null;
   const yhP=yh?.price;
-  const isKRW=s.tk.endsWith('.KS')||s.tk==='KOSPI200';
+  const isKRW=s.tk.endsWith('.KS')||s.tk==='KOSPI200'||s.tk==='^KS200';
   const price=yhP?(isKRW?yhP:yhP*S.fx):(binKRW||null);
-  const bChg=bt?+bt.priceChangePercent:null;
+  const bChg=bt?+bt.priceChangePercent:(yh?.prev&&yhP?(yhP-yh.prev)/yh.prev*100:null);
 
-  return`<div class="card"><div class="card-h"><div><div class="card-nm">${s.nm2||s.nm}</div><div class="card-tk">${s.tk}</div></div><div class="badges"><span class="bg bg-b">Binance</span></div></div>
+  return`<div class="card"><div class="card-h"><div><div class="card-nm">${s.nm2||s.nm}</div><div class="card-tk">${s.tk}</div></div><div class="badges"><span class="bg bg-k">야간</span></div></div>
   <div class="panels"><div class="pnl pnl-l" style="grid-column:1/-1"><div class="pnl-lb">${isKRW?'KRX':'현재가'} (KRW)</div><div class="pnl-pr mono">${price?fK(price):'—'}</div><div class="pnl-ch mono ${pC(bChg)}">${bChg!=null?fP(bChg):'—'}</div><div class="pnl-st"><span class="sd sd-o"></span>24/7</div></div></div>
   <div class="card-f">${binP?`<div class="conv">USD $${binP.toFixed(2)} × ₩${Math.round(S.fx).toLocaleString()} = ${fK(binKRW)}</div>`:''}</div></div>`;
 }
@@ -184,7 +189,18 @@ function nCard(s){
 function updatePred(){
   const items=[];let sc=0;
   W.dual.forEach(s=>{const d=S.st[s.tk];const bt=d?.bt;if(bt){const c=+bt.priceChangePercent;sc+=c>1?1:c<-1?-1:0;items.push({l:(c>1?'🟢':c<-1?'🔴':'⚪')+' '+s.nm,v:fP(c),d:c>1?'up':c<-1?'down':'flat',s:c>2?'프리미엄 높음':c<-2?'할인 중':'보합'});}});
-  W.night.forEach(s=>{const d=S.st[s.tk];const bt=d?.bt;if(bt){const c=+bt.priceChangePercent;sc+=c>2?1:c<-2?-1:0;items.push({l:(c>1?'🟢':c<-1?'🔴':'⚪')+' '+s.nm,v:fP(c),d:c>1?'up':c<-1?'down':'flat',s:c>3?'강세':c<-3?'약세':'보합'});}});
+  W.night.forEach(s=>{
+  if(s.tk==='MU'||s.tk==='WDC')return;
+  const d=S.st[s.tk];
+  const bt=d?.bt;const yh=d?.yh;
+  let c=null;
+  if(bt){c=+bt.priceChangePercent;}
+  else if(yh?.price&&yh?.prev){c=(yh.price-yh.prev)/yh.prev*100;}
+  if(c!==null){
+    sc+=(s.hb?(c>2?1:c<-2?-1:0):(c>1?1:c<-1?-1:0));
+    items.push({l:(c>1?'🟢':c<-1?'🔴':'⚪')+' '+(s.nm2||s.nm),v:fP(c),d:c>1?'up':c<-1?'down':'flat',s:c>3?'강세':c<-3?'약세':'보합'});
+  }
+});
   document.getElementById('pG').innerHTML=items.map(i=>`<div class="pred-i"><div class="pred-il">${i.l}</div><div class="pred-iv ${i.d}">${i.v}</div><div class="pred-is">${i.s}</div></div>`).join('');
   const b=document.getElementById('pB'),s=document.getElementById('pS');let v,vc,st;
   if(sc>=2){v='📈 갭업 출발';vc='bull';st='프리마켓 지표 양수. 갭업 출발 예상.';}
