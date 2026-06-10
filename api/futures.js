@@ -10,12 +10,12 @@ export default async function handler(req, res) {
     });
     const html = await r.text();
 
-    // 현재 선물가 (헤더에서)
-    const priceM = html.match(/코스피 200 선물[\s\S]*?<strong[^>]*>\s*<span[^>]*>([\d,.]+)/);
+    // 현재 선물가 - StickyStockInfo_price 클래스에서 추출
+    const priceM = html.match(/StickyStockInfo_price[^>]*>([\d,.]+)/);
     const price = priceM ? +priceM[1].replace(/,/g, '') : null;
 
-    // 전일대비 변동률
-    const chgM = html.match(/([\d,.]+)([-+][\d.]+%)/);
+    // 전일대비 변동률 - Fluctuation 클래스에서 추출
+    const chgM = html.match(/Fluctuation_article[^>]*>[\s\S]*?([\d,.]+)([-+][\d.]+%)/);
     const chg = chgM ? chgM[2] : null;
 
     // 일별 시세에서 종가 (첫 번째 행)
