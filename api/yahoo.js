@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const d = await r.json();
     const m = d.chart.result[0].meta;
     const prices = d.chart.result[0].indicators?.quote?.[0]?.close?.filter(Boolean) || [];
-    const prev = prices.length >= 2 ? prices[prices.length - 2] : m.chartPreviousClose || m.previousClose;
+    const prev = prices.length >= 2 ? prices[prices.length - 1] : m.chartPreviousClose || m.previousClose;
 
     res.json({
       price: m.regularMarketPrice,
