@@ -158,6 +158,7 @@ function dCard(s){
   const yhCur=nv?.cur||yh?.cur;
   const bChg=bt?+bt.priceChangePercent:null;
   const yhChg=yhP&&yhPrev?((yhP-yhPrev)/yhPrev*100):null;
+  const mktLabel=isKR?'장마감':'NYSE 장마감';
 
   let pm='';
   if(yhP&&binKRW&&yhP>0){const yhKRW=yhCur==='KRW'?yhP:(yhP||0)*S.fx;const diff=binKRW-yhKRW;const pr=yhKRW>0?(diff/yhKRW*100):0;pm=`<div class="pr"><span class="lb">현재가 vs 프리마켓</span><span class="vl ${pr>=0?'pos':'neg'}">${diff>=0?'▲':'▼'} ${fK(Math.abs(diff))}</span></div>`;}
@@ -167,7 +168,7 @@ function dCard(s){
   const rs=binP?(showKRW?fU(binP):fK(binKRW)):'';
 
   return`<div class="card"><div class="card-h"><div><div class="card-nm">${s.nm}</div><div class="card-tk">${s.tk} · ${s.bn}</div></div><div class="badges"><span class="bg bg-k">${isKR?'KRX':'NYSE'}</span><span class="bg bg-b">Binance</span></div></div>
-  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?(nv?'KRX 종가 (네이버증권)':'KRX 종가 (Yahoo)'):'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd sd-c"></span>⚫ 장마감</div></div>
+  <div class="panels"><div class="pnl pnl-l"><div class="pnl-lb">${isKR?(nv?'KRX 종가 (네이버증권)':'KRX 종가 (Yahoo)'):'현재가'}</div><div class="pnl-pr mono">${lp}</div><div class="pnl-ch mono ${pC(yhChg)}">${yhChg!=null?fP(yhChg):'—'}</div><div class="pnl-st"><span class="sd sd-c"></span>⚫ ${mktLabel}</div></div>
   <div class="pnl pnl-r"><div class="pnl-lb">Binance 프리마켓</div><div class="pnl-pr mono">${rp}</div><div class="pnl-ps mono">${rs}</div><div class="pnl-ch mono ${pC(bChg)}">${bChg!=null?fP(bChg):'—'}</div><div class="pnl-st"><span class="sd sd-o"></span>24/7</div></div></div>
   <div class="card-f">${pm}${binP?`<div class="conv">${showKRW?fU(binP)+' × ₩'+Math.round(S.fx).toLocaleString()+' = '+fK(binKRW):fK(binKRW)+' = '+fU(binP)}</div>`:''}</div></div>`;
 }
