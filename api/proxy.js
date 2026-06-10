@@ -15,9 +15,9 @@ export default async function handler(req, res) {
     const html = await r.text();
 
     const priceM = html.match(/class="no_today".*?<span class="blind">([\d,]+)/s);
-    const prevM = html.match(/class="no_exday".*?<em.*?<span class="blind">([\d,]+)/s);
-
     const price = priceM ? +priceM[1].replace(/,/g, '') : null;
+
+    const prevM = html.match(/<span class="sptxt sp_txt2">전일<\/span>[\s\S]*?<span class="blind">([\d,]+)/);
     const prev = prevM ? +prevM[1].replace(/,/g, '') : null;
 
     res.json({ price, prev, cur: 'KRW', source: 'naver' });
